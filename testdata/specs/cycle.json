@@ -1,0 +1,61 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Recycle",
+    "description": "",
+    "version": "7.3"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/keys/{key-name}/create": {
+      "get": {
+        "parameters": [
+          {
+            "name": "key-name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/KeyProperty"
+            },
+            "description": "response 200"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "KeyProperty": {
+      "discriminator": "type",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "key name"
+        },
+        "type": {
+          "type": "string"
+        },
+        "rsa": {
+          "$ref": "#/definitions/KeyRSA",
+          "description": "refer to sub RSA"
+        }
+      }
+    },
+    "KeyRSA": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/KeyProperty"
+        }
+      ]
+    }
+  }
+}
