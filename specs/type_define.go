@@ -87,6 +87,8 @@ func (f FieldType) MockValue() interface{} {
 		return utils.MockUUID()
 	case TypeBytes:
 		return utils.MockByte()
+	case TypeBool:
+		return true
 	}
 	return nil
 }

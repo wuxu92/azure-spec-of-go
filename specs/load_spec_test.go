@@ -24,7 +24,7 @@ var _ = Describe("Load Spec", func() {
 	Context("Load cycle.json", func() {
 		var fileName = "cycle.json"
 		When("Load Expanded Spec", func() {
-			FIt("mock json", func() {
+			It("mock json", func() {
 				doc, err := specs.LoadExpanded(fileName)
 				Expect(err).To(BeNil())
 				//Expect(doc.Spec()).ToNot(BeNil())
@@ -37,10 +37,13 @@ var _ = Describe("Load Spec", func() {
 
 	Context("Load keys.json", func() {
 		var fileName = "kv/stable/2023-02-21/keys.json"
-		It("Load Expanded Spec", func() {
+		FIt("Load Expanded Spec", func() {
 			doc, err := specs.LoadExpanded(fileName)
 			Expect(err).To(BeNil())
 			Expect(doc.Spec()).ToNot(BeNil())
+			spec := specs.NewSpec(doc.Spec())
+			bs := spec.RenderDefinitions()
+			logs.Info("%s", utils.JSONFormat(bs, true))
 		})
 	})
 })
