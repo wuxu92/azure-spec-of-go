@@ -1,6 +1,10 @@
 package utils
 
-import "github.com/iancoleman/strcase"
+import (
+	"encoding/json"
+
+	"github.com/iancoleman/strcase"
+)
 
 func TypeNamePublic(name string) string {
 	return strcase.ToCamel(name)
@@ -8,4 +12,14 @@ func TypeNamePublic(name string) string {
 
 func TypeNamePrivate(name string) string {
 	return strcase.ToLowerCamel(name)
+}
+
+func JSON(ins interface{}) string {
+	bs, _ := json.Marshal(ins)
+	return string(bs)
+}
+
+func JSONIndent(ins interface{}) string {
+	bs, _ := json.MarshalIndent(ins, "", "  ")
+	return string(bs)
 }
