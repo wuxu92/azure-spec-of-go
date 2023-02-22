@@ -5,18 +5,12 @@ import (
 	"azure-spec-of-go/utils"
 	"azure-spec-of-go/utils/logs"
 
-	"github.com/go-openapi/spec"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Load Spec", func() {
 
-	testSpecStruct := func(swag *spec.Swagger) *specs.Spec {
-		spec := specs.NewSpec(swag)
-		logs.Info(utils.JSONIndent(spec))
-		return spec
-	}
 	Context("load foo.json", func() {
 		var fileName = "foo.json"
 		It("loads.Spec", func() {
@@ -30,14 +24,13 @@ var _ = Describe("Load Spec", func() {
 	Context("Load cycle.json", func() {
 		var fileName = "cycle.json"
 		When("Load Expanded Spec", func() {
-			doc, _ := specs.LoadExpanded(fileName)
-			//Expect(err).To(BeNil())
-			//Expect(doc.Spec()).ToNot(BeNil())
-			spec := testSpecStruct(doc.Spec())
-
 			FIt("mock json", func() {
-				str := spec.RenderDefinitions()
-				logs.Info("%s", str)
+				doc, err := specs.LoadExpanded(fileName)
+				Expect(err).To(BeNil())
+				//Expect(doc.Spec()).ToNot(BeNil())
+				spec := specs.NewSpec(doc.Spec())
+				bs := spec.RenderDefinitions()
+				logs.Info("%s", utils.JSONFormat(bs, true))
 			})
 		})
 	})

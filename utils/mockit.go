@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"encoding/base64"
 	"fmt"
 	"math"
 	"sync/atomic"
@@ -47,9 +46,10 @@ func getInt64Value() int64 {
 func MockByte() []byte {
 	val := getInt64Value()
 	str := []byte(fmt.Sprintf("%d", val))
-	res := make([]byte, base64.StdEncoding.EncodedLen(len(str)))
-	base64.StdEncoding.Encode(res, str)
-	return res
+	return str
+	//res := make([]byte, base64.StdEncoding.EncodedLen(len(str)))
+	//base64.StdEncoding.Encode(res, str)
+	//return res
 }
 
 func MockString() string {

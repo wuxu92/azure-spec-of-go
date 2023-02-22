@@ -1,7 +1,7 @@
 package specs
 
 import (
-	"strings"
+	"bytes"
 
 	"azure-spec-of-go/utils/logs"
 
@@ -14,18 +14,18 @@ type Definition struct {
 	Fields  map[string]*Field
 }
 
-func (d *Definition) MockValue(bs *strings.Builder) {
+func (d *Definition) MockValue(bs *bytes.Buffer) {
 	bs.WriteString("{\n")
 	first := true
 	for name, f := range d.Fields {
 		if !first {
 			bs.WriteString(",\n")
 		}
-		first = true
+		first = false
 		bs.WriteString(sf(`"%s"`, name))
 		f.MockJSON(bs)
 	}
-	bs.WriteString("}\n")
+	bs.WriteString("}")
 }
 
 // Field definition to a go struct field
@@ -107,13 +107,12 @@ func NewFieldFromSchema(name string, sch *spec.Schema) *Field {
 }
 
 // MockJSON try to mock this field to a string builder
-func (f *Field) MockJSON(bs *strings.Builder) {
-	bs.WriteString(f.JSONTag)
+func (f *Field) MockJSON(bs *bytes.Buffer) {
 	bs.WriteByte(':')
 	if val := f.Type.MockValue(); val != nil {
 		_, isStr := val.(string)
 		if isStr {
-			bs.WriteByte('"')
+			bs.WriteString(`"str-`)
 		}
 		bs.WriteString(sf("%v", val))
 		if isStr {
@@ -121,7 +120,7 @@ func (f *Field) MockJSON(bs *strings.Builder) {
 		}
 	}
 	if len(f.Subs) > 0 {
-		bs.WriteByte('{')
+		bs.WriteString("{\n")
 		var first = true
 		for name, sub := range f.Subs {
 			if !first {
@@ -131,7 +130,8 @@ func (f *Field) MockJSON(bs *strings.Builder) {
 			bs.WriteString(sf(`"%s"`, name))
 			sub.MockJSON(bs)
 		}
-		bs.WriteByte('}')
-		bs.WriteByte('\n')
+		bs.WriteString("\n}")
+	} else if f.RefName != "" {
+		bs.WriteString("null")
 	}
 }

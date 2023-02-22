@@ -1,7 +1,7 @@
 package specs
 
 import (
-	"strings"
+	"bytes"
 
 	"azure-spec-of-go/utils"
 
@@ -39,13 +39,18 @@ func (s *Spec) ParseDefinitions() {
 }
 
 // RenderDefinitions render all definitions as output
-func (s *Spec) RenderDefinitions() string {
-	var bs strings.Builder
+func (s *Spec) RenderDefinitions() []byte {
+	var bs bytes.Buffer
 	bs.WriteString("{\n")
+	var first = true
 	for name, def := range s.Definitions {
+		if !first {
+			bs.WriteString(",\n")
+		}
+		first = false
 		bs.WriteString(sf(`"%s": `, name))
 		def.MockValue(&bs)
 	}
 	bs.WriteString("}\n")
-	return bs.String()
+	return bs.Bytes()
 }
