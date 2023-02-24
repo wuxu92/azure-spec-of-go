@@ -74,9 +74,9 @@ func NewFieldType(f spec.StringOrArray, format string) (res FieldType) {
 func (f FieldType) MockValue() interface{} {
 	switch f {
 	case TypeInt, TypeInt32, TypeInt64:
-		return sf("%d", utils.MockInt())
+		return utils.MockInt()
 	case TypeFloat, TypeFloat64:
-		return sf("%f", 0.5+float32(utils.MockInt()))
+		return 0.5 + float32(utils.MockInt())
 	case TypeDate:
 		return utils.MockDate()
 	case TypeDateTime:

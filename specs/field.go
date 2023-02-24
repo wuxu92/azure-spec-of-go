@@ -11,10 +11,29 @@ import (
 type Definition struct {
 	Name    string
 	JSONTag string
+	RefBy   []*Field // this definition is referenced by
 	Fields  map[string]*Field
+
+	// remember has mock values from
+	mockFrom map[*Field]struct{}
 }
 
-func (d *Definition) MockValue(bs *bytes.Buffer) {
+func (d *Definition) tryMockFor(f *Field) bool {
+	if _, ok := d.mockFrom[f]; ok {
+		return false
+	}
+	if d.mockFrom == nil {
+		d.mockFrom = map[*Field]struct{}{}
+	}
+	d.mockFrom[f] = struct{}{}
+	return true
+}
+
+func (d *Definition) MockValue(bs *bytes.Buffer, from *Field) {
+	if !d.tryMockFor(from) {
+		bs.WriteString("null")
+		return
+	}
 	bs.WriteString("{\n")
 	first := true
 	for name, f := range d.Fields {
@@ -22,16 +41,16 @@ func (d *Definition) MockValue(bs *bytes.Buffer) {
 			bs.WriteString(",\n")
 		}
 		first = false
-		bs.WriteString(sf(`"%s"`, name))
-		f.MockJSON(bs)
+		bs.WriteString(sf(`"%s":`, name))
+		f.MockValue(bs)
 	}
-	bs.WriteString("}")
+	bs.WriteString("\n}")
 }
 
 // Field definition to a go struct field
 type Field struct {
 	Type        FieldType   `json:"type,omitempty"`
-	OriginType  []string    `json:"origin_type",omitempty`
+	OriginType  []string    `json:"origin_type,omitempty"`
 	Format      FieldFormat `json:"format,omitempty"`
 	Name        string      `json:"name,omitempty"`
 	JSONTag     string      `json:"json_tag,omitempty"` // origin name defined in swagger
@@ -39,6 +58,8 @@ type Field struct {
 	Default     interface{} `json:"default,omitempty"`
 	Enums       []string    `json:"enums,omitempty"`    // may be enum type, values in enum
 	RefName     string      `json:"ref_name,omitempty"` // this property refers name, expand to Subs
+	RefTo       *Definition // refer to a definition
+	ArrayItem   *Field      `json:"array_item,omitempty"` // if type is array, this field for item detail
 
 	// Subs properties of object type, expand by spec, it will stop when cycle ref exists
 	Subs     map[string]*Field `json:"subs,omitempty"`
@@ -69,9 +90,6 @@ func NewFieldFromSchema(name string, sch *spec.Schema) *Field {
 	f.Description = sch.Description
 	f.Name = name
 	f.JSONTag = name
-	if name == "" {
-		f.Type = TypeRoot
-	}
 
 	if len(sch.Enum) > 0 {
 		if sch.Type[0] != "string" {
@@ -85,6 +103,14 @@ func NewFieldFromSchema(name string, sch *spec.Schema) *Field {
 
 	if sch.Ref.String() != "" {
 		f.RefName = sch.Ref.String()
+	}
+
+	if sch.Items != nil {
+		item := sch.Items.Schema
+		if item == nil || len(sch.Items.Schemas) > 0 {
+			item = &sch.Items.Schemas[0]
+		}
+		f.ArrayItem = NewFieldFromSchema("", item)
 	}
 
 	// process properties
@@ -106,19 +132,25 @@ func NewFieldFromSchema(name string, sch *spec.Schema) *Field {
 	return &f
 }
 
-// MockJSON try to mock this field to a string builder
-func (f *Field) MockJSON(bs *bytes.Buffer) {
-	bs.WriteByte(':')
-	if val := f.Type.MockValue(); val != nil {
-		_, isStr := val.(string)
-		if isStr {
-			bs.WriteString(`"str-`)
-		}
+func appendSimpleValue(bs *bytes.Buffer, val interface{}) {
+	if s, ok := val.(string); ok {
+		bs.WriteString(sf(`"%s"`, s))
+	} else {
 		bs.WriteString(sf("%v", val))
-		if isStr {
-			bs.WriteByte('"')
-		}
 	}
+}
+
+// MockValue try to mock this field to a string builder
+func (f *Field) MockValue(bs *bytes.Buffer) {
+	if val := f.Type.MockValue(); val != nil {
+		appendSimpleValue(bs, val)
+		return
+	}
+	if f.RefTo != nil {
+		f.RefTo.MockValue(bs, f)
+		return
+	}
+
 	if len(f.Subs) > 0 {
 		bs.WriteString("{\n")
 		var first = true
@@ -128,10 +160,22 @@ func (f *Field) MockJSON(bs *bytes.Buffer) {
 			}
 			first = false
 			bs.WriteString(sf(`"%s"`, name))
-			sub.MockJSON(bs)
+			sub.MockValue(bs)
 		}
+		bs.WriteString("\n}")
+	} else if f.ArrayItem != nil {
+		bs.WriteString("[")
+		f.ArrayItem.MockValue(bs)
+		bs.WriteString("]")
+	} else if f.AdditionalPropertiesType > 0 {
+		bs.WriteString("{\n\"key\":")
+		appendSimpleValue(bs, f.AdditionalPropertiesType.MockValue())
 		bs.WriteString("\n}")
 	} else if f.RefName != "" {
 		bs.WriteString("null")
+	} else {
+		// not support for now?
+		logs.Warn("not support to mock value for: %s", f.Name)
+		bs.WriteString(`""`)
 	}
 }
